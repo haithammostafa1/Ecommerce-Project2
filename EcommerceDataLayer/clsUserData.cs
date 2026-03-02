@@ -14,7 +14,34 @@ namespace EcommerceDataLayer
 {
     public class clsUserData
     {
-       public class UserDto
+        public class UserResponseDto
+        {
+            [Required]
+            public int Id { get; set; }
+
+            [Required]
+            [MaxLength(50)]
+            public string FirstName { get; set; } = string.Empty;
+
+            [Required]
+            [MaxLength(50)]
+            public string LastName { get; set; } = string.Empty;
+
+            [Required]
+            [EmailAddress]
+            [MaxLength(150)]
+            public string Email { get; set; } = string.Empty;
+            [Required]
+            [MaxLength(100)]
+            public string Role { get; set; } = string.Empty;
+            [Phone]
+            [MaxLength(20)]
+            public string? Phone { get; set; }
+
+            public string? Address { get; set; }
+            public DateTime CreatedAt { get; set; }
+        }
+        public class UseCreateDto
         {
             [Required]
             public int Id { get; set; }
@@ -42,11 +69,46 @@ namespace EcommerceDataLayer
             public string? Phone { get; set; }
 
             public string? Address { get; set; }
-            public DateTime CreatedAt {  get; set; }
+            public DateTime CreatedAt { get; set; }
         }
-        private static UserDto MapToUserDto(SqlDataReader reader)
+        public class UserAuthDto
         {
-            return new UserDto
+            [Required]
+            public int Id { get; set; }
+
+            [Required]
+            [MaxLength(50)]
+            public string FirstName { get; set; } = string.Empty;
+
+            [Required]
+            [MaxLength(50)]
+            public string LastName { get; set; } = string.Empty;
+            [Required]
+            [EmailAddress]
+            [MaxLength(150)]
+            public string Email { get; set; } = string.Empty;
+            [Required]
+            [MaxLength(255)]
+            public string Passwordhash { get; set; } = string.Empty;
+            [Required]
+            [MaxLength(100)]
+            public string Role { get; set; } = string.Empty;
+        }
+        private static UserAuthDto MapToUserAuthDto(SqlDataReader reader)
+        {
+            return new UserAuthDto
+            {
+                Id = reader.GetInt32(reader.GetOrdinal("Id")),
+                FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
+                LastName = reader.GetString(reader.GetOrdinal("LastName")),
+                Email = reader.GetString(reader.GetOrdinal("Email")),
+                Passwordhash = reader.GetString(reader.GetOrdinal("PasswordHash")),
+                Role = reader.GetString(reader.GetOrdinal("Role"))
+            };
+        }
+        private static UserResponseDto MapToUserDto(SqlDataReader reader)
+        {
+            return new UserResponseDto
             {
                 Id = reader.GetInt32(reader.GetOrdinal("Id")),
                 FirstName = reader.GetString(reader.GetOrdinal("FirstName")),
@@ -57,16 +119,16 @@ namespace EcommerceDataLayer
                 Address = reader.IsDBNull(reader.GetOrdinal("Address"))
                     ? null : reader.GetString(reader.GetOrdinal("Address")),
                 CreatedAt = reader.GetDateTime(reader.GetOrdinal("CreatedAt")),
-                PasswordHash = reader.GetString(reader.GetOrdinal("PasswordHash")),
+             
                 Role = reader.GetString(reader.GetOrdinal("Role"))
             };
         }
 
         // Get User By ID
-        public static async Task<UserDto?> GetUserById(int id)
+        public static async Task<UserResponseDto?> GetUserById(int id)
         {
             Log.Information("DAL: Getting user by ID {Id}", id);
-            UserDto? user = null;
+            UserResponseDto? user = null;
 
             try
             {
@@ -99,10 +161,10 @@ namespace EcommerceDataLayer
         }
 
         // Get User By Email
-        public static async Task<UserDto?> GetUserByEmail(string email)
+        public static async Task<UserAuthDto?> GetUserByEmail(string email)
         {
             Log.Information("DAL: Getting user by email {Email}", email);
-            UserDto? user = null;
+            UserAuthDto? user = null;
 
             try
             {
@@ -117,7 +179,7 @@ namespace EcommerceDataLayer
 
                 if (await reader.ReadAsync())
                 {
-                    user = MapToUserDto(reader);
+                    user = MapToUserAuthDto(reader);
                 }
 
                 return user;
@@ -164,7 +226,7 @@ namespace EcommerceDataLayer
         }
 
         // Add New User
-        public static async Task<int> RegisterNewUser(UserDto dto)
+        public static async Task<int> RegisterNewUser(UseCreateDto dto)
         {
             Log.Information("DAL: Adding new user {Email}", dto.Email);
             string PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.PasswordHash);
@@ -207,7 +269,7 @@ namespace EcommerceDataLayer
         }
 
         // Update User
-        public static async Task<int> UpdateUser(UserDto dto)
+        public static async Task<int> UpdateUser(UserResponseDto dto)
         {
             Log.Information("DAL: Updating user {Id}", dto.Id);
 
@@ -247,14 +309,14 @@ namespace EcommerceDataLayer
         public static async Task<int> ChangeUserPassword(int userId, string newPassword)
         {
             Log.Information("DAL: Updating password for user {Id}", userId);
-            string newHash = BCrypt.Net.BCrypt.HashPassword(newPassword);
+          
             try
             {
                 using SqlConnection conn = new(clsAccessSettings.ConnectionString);
                 using SqlCommand cmd = new("sp_ChangePassword", conn);
                 cmd.CommandType = CommandType.StoredProcedure;
                 cmd.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
-                cmd.Parameters.Add("@NewPasswordHash", SqlDbType.VarChar, 255).Value = newHash;
+                cmd.Parameters.Add("@NewPasswordHash", SqlDbType.VarChar, 255).Value = newPassword;
                 var returnParam = cmd.Parameters.Add("@ReturnVal", SqlDbType.Int);
                 returnParam.Direction = ParameterDirection.ReturnValue;
                 await conn.OpenAsync();
@@ -298,11 +360,11 @@ namespace EcommerceDataLayer
         }
 
         // Get All Users (Paged)
-        public static async Task<PagedList<UserDto>> GetAllUsersPaged(
+        public static async Task<PagedList<UserResponseDto>> GetAllUsersPaged(
             PaginationParams pagination)
         {
             Log.Information("DAL: Getting users page {Page}", pagination.PageNumber);
-            var users = new List<UserDto>();
+            var users = new List<UserResponseDto>();
             int totalCount = 0;
 
             try
@@ -335,7 +397,7 @@ namespace EcommerceDataLayer
 
                 Log.Information("DAL: Retrieved {Count} users", users.Count);
 
-                return new PagedList<UserDto>(
+                return new PagedList<UserResponseDto>(
                     users, totalCount, pagination.PageNumber, pagination.PageSize);
             }
             catch (Exception ex)

@@ -1,5 +1,6 @@
 ﻿using EcommerceBuisnessLayer;
 using EcommerceBuisnessLayer.Dtos;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
 
@@ -7,6 +8,7 @@ namespace EcommrceApi.Controllers
 {
     [ApiController]
     [Route("api/orders")]
+    [Authorize]
     public class OrdersController : ControllerBase
     {
 

@@ -1,10 +1,12 @@
 ﻿using EcommerceBuisnessLayer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace EcommrceApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+   // [Authorize]
     public class CartController : ControllerBase
     {
 

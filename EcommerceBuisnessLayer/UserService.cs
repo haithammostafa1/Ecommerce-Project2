@@ -13,32 +13,32 @@ namespace EcommerceBuisnessLayer
 {
     public interface IUserRepository
     {
-        Task<UserDto?> GetUserById(int id);
-        Task<UserDto?> GetUserByEmail(string email);
-        Task<PagedList<UserDto>> GetAllUsers(PaginationParams pagination);
-        Task<int> RegisterNewUser(UserDto dto);
-        Task<int> UpdateUser(UserDto dto);
+        Task<UserResponseDto?> GetUserById(int id);
+        Task<UserAuthDto?> GetUserByEmail(string email);
+        Task<PagedList<UserResponseDto>> GetAllUsers(PaginationParams pagination);
+        Task<int> RegisterNewUser(UseCreateDto dto);
+        Task<int> UpdateUser(UserResponseDto dto);
         Task<int> DeleteUser(int id);
         Task<int> ChangeUserPassword(int id,string NewPassword);
         Task<bool> CheckEmailExists(string email, int? excludeId = null);
     }
     public class UserRepository : IUserRepository
     {
-        public async Task<UserDto?> GetUserById(int id)
+        public async Task<UserResponseDto?> GetUserById(int id)
             => await clsUserData.GetUserById(id);
         public async Task<int> ChangeUserPassword(int id,string NewPassword)
             => await clsUserData.ChangeUserPassword(id, NewPassword);
       
-        public async Task<UserDto?> GetUserByEmail(string email)
+        public async Task<UserAuthDto?> GetUserByEmail(string email)
             => await clsUserData.GetUserByEmail(email);
 
-        public async Task<PagedList<UserDto>> GetAllUsers(PaginationParams pagination)
+        public async Task<PagedList<UserResponseDto>> GetAllUsers(PaginationParams pagination)
             => await clsUserData.GetAllUsersPaged(pagination);
 
-        public async Task<int> RegisterNewUser(UserDto dto)
+        public async Task<int> RegisterNewUser(UseCreateDto dto)
             => await clsUserData.RegisterNewUser(dto);
 
-        public async Task<int> UpdateUser(UserDto dto)
+        public async Task<int> UpdateUser(UserResponseDto dto)
             => await clsUserData.UpdateUser(dto);
 
         public async Task<int> DeleteUser(int id)
@@ -47,10 +47,6 @@ namespace EcommerceBuisnessLayer
         public async Task<bool> CheckEmailExists(string email, int? excludeId = null)
             => await clsUserData.CheckEmailExists(email, excludeId);
     }
-
-
-
-
     public enum UserOperationResult
     {
         Success = 1,
@@ -61,12 +57,12 @@ namespace EcommerceBuisnessLayer
     }
     public interface IUserService
     {
-        Task<UserDto?> GetUserById(int id);
-        Task<UserDto?> GetUserByEmail(string email);
-        Task<PagedList<UserDto>> GetAllUsers(PaginationParams pagination);
-        Task<UserOperationResult> RegisterNewUser(UserDto dto);
+        Task<UserResponseDto?> GetUserById(int id);
+        Task<UserAuthDto?> GetUserByEmail(string email);
+        Task<PagedList<UserResponseDto>> GetAllUsers(PaginationParams pagination);
+        Task<UserOperationResult> RegisterNewUser(UseCreateDto dto);
         Task<UserOperationResult> ChangeUserPassword(int id, string password);
-        Task<UserOperationResult> UpdateUser(UserDto dto);
+        Task<UserOperationResult> UpdateUser(UserResponseDto dto);
         Task<UserOperationResult> DeleteUser(int id);
         Task<bool> CheckEmailExists(string email);
     }
@@ -82,34 +78,29 @@ namespace EcommerceBuisnessLayer
             _logger = logger;
         }
 
-        public async Task<UserDto?> GetUserById(int id)
+        public async Task<UserResponseDto?> GetUserById(int id)
         {
             _logger.LogInformation("Service: Getting user {Id}", id);
             return await _repository.GetUserById(id);
         }
 
-        public async Task<UserDto?> GetUserByEmail(string email)
+        public async Task<UserAuthDto?> GetUserByEmail(string email)
         {
             _logger.LogInformation("Service: Getting user by email {Email}", email);
             return await _repository.GetUserByEmail(email);
         }
 
-        public async Task<PagedList<UserDto>> GetAllUsers(PaginationParams pagination)
+        public async Task<PagedList<UserResponseDto>> GetAllUsers(PaginationParams pagination)
         {
             _logger.LogInformation("Service: Getting all users");
             return await _repository.GetAllUsers(pagination);
         }
 
-        public async Task<UserOperationResult> RegisterNewUser(UserDto dto)
+        public async Task<UserOperationResult> RegisterNewUser(UseCreateDto dto)
         {
             _logger.LogInformation("Service: Adding user {Email}", dto.Email);
 
-            if (string.IsNullOrWhiteSpace(dto.FirstName) ||
-                string.IsNullOrWhiteSpace(dto.LastName) ||
-                string.IsNullOrWhiteSpace(dto.Email))
-            {
-                return UserOperationResult.InvalidData;
-            }
+           
 
             if (await _repository.CheckEmailExists(dto.Email))
                 return UserOperationResult.DuplicateEmail;
@@ -121,7 +112,7 @@ namespace EcommerceBuisnessLayer
                 : UserOperationResult.Failed;
         }
 
-        public async Task<UserOperationResult> UpdateUser(UserDto dto)
+        public async Task<UserOperationResult> UpdateUser(UserResponseDto dto)
         {
             if (dto.Id <= 0)
                 return UserOperationResult.InvalidData;

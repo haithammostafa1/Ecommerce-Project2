@@ -1,5 +1,6 @@
 ﻿using EcommerceBuisnessLayer;
 using EcommerceDataLayer.Helpers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
@@ -8,8 +9,10 @@ using static EcommerceDataLayer.clsUserData;
 
 namespace EcommrceApi.Controllers
 {
+   
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class UsersController : ControllerBase
     {
         private readonly IUserService _userService;
@@ -67,13 +70,13 @@ namespace EcommrceApi.Controllers
             return Ok(pagedList);
         }
 
-        // ===============================
-        // 🔹 Add New User
+       
+    
         // ===============================
         [HttpPost("AddNewUser", Name = "AddNewUser")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        public async Task<IActionResult> AddNewUser([FromBody] UserDto dto)
+        public async Task<IActionResult> AddNewUser([FromBody] UseCreateDto dto)
         {
             Log.Information("API: Adding new user {Email}", dto?.Email);
 
@@ -105,7 +108,7 @@ namespace EcommrceApi.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<IActionResult> UpdateUser(int id, [FromBody] UserDto dto)
+        public async Task<IActionResult> UpdateUser(int id, [FromBody] UserResponseDto dto)
         {
             Log.Information("API: Updating user {Id}", id);
 

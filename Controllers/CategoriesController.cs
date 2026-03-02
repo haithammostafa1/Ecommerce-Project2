@@ -1,6 +1,7 @@
 ﻿using EcommerceBuisnessLayer; // تأكد إن الاسم مطابق للمشروع عندك (Business vs Buisness)
 using EcommerceDataLayer;
 using EcommerceDataLayer.Helpers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
@@ -8,6 +9,7 @@ using System.Text.Json;
 
 namespace EcommrceApi.Controllers
 {
+  
     [Route("api/EcommerceApi")]
     [ApiController]
     public class CategoriesController : ControllerBase
