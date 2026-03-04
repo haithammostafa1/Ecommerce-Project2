@@ -14,22 +14,29 @@ namespace EcommrceApi.Controllers
 
         private readonly OrderService _orderService;
         private readonly ILogger<OrdersController> _logger;
+        private readonly IAuthorizationService _authorizationService;
 
-        public OrdersController(OrderService orderService, ILogger<OrdersController> logger)
+        public OrdersController(OrderService orderService, ILogger<OrdersController> logger, IAuthorizationService authorizationService)
         {
             _orderService = orderService;
             _logger = logger;
+            _authorizationService= authorizationService;
         }
-        [Authorize(Roles = "User,Admin")]
+
         [HttpPost("place")]
         public async Task<IActionResult> PlaceOrder([FromBody] PlaceOrderRequestDto request)
         {
             _logger.LogInformation("HTTP PlaceOrder request received.");
-
-            // 3. استدعاء الدالة
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+            var authResult = await _authorizationService.AuthorizeAsync(
+            User,
+          request.Userid,
+           "UserOwnerOrAdmin");
+            if (!authResult.Succeeded)
+                return Forbid(); // 403
             var result = await _orderService.PlaceOrder(request);
 
-            // 4. تصحيح طريقة كتابة الـ Enum (اسم الكلاس . اسم الـ Enum)
             return result switch
             {
                 OrderService.PlaceOrderResult.Success =>

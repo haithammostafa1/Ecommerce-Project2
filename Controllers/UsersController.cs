@@ -5,22 +5,25 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
 using System.Text.Json;
+using System.Security.Claims;
 using static EcommerceDataLayer.clsUserData;
 
 namespace EcommrceApi.Controllers
 {
-   
+
     [Route("api/[controller]")]
     [ApiController]
-  [Authorize]
+    [Authorize]
     public class UsersController : ControllerBase
     {
         private readonly IUserService _userService;
         private readonly ILogger<UsersController> _logger;
-        public UsersController(IUserService userService, ILogger<UsersController> logger)
+        private readonly IAuthorizationService _authorizationService;
+        public UsersController(IUserService userService, ILogger<UsersController> logger, IAuthorizationService authorizationService)
         {
             _userService = userService;
             _logger = logger;
+            _authorizationService = authorizationService;
         }
 
         [HttpGet("{id}", Name = "GetUserById")]
@@ -33,7 +36,13 @@ namespace EcommrceApi.Controllers
 
             if (id <= 0)
                 return BadRequest("Invalid User Id");
+            var authResult = await _authorizationService.AuthorizeAsync(
+             User,
+              id,
+               "UserOwnerOrAdmin");
 
+            if (!authResult.Succeeded)
+                return Forbid(); // 403
             var user = await _userService.GetUserById(id);
 
             if (user == null)
@@ -41,12 +50,13 @@ namespace EcommrceApi.Controllers
 
             return Ok(user);
         }
-     //   [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin")]
         [HttpGet("GetAll", Name = "GetAllUsers")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAllUsers([FromQuery] PaginationParams pagination)
         {
             _logger.LogInformation("API: Request to get all users");
+
 
             var pagedList = await _userService.GetAllUsers(pagination);
 
@@ -104,7 +114,13 @@ namespace EcommrceApi.Controllers
         public async Task<IActionResult> UpdateUser(int id, [FromBody] UserResponseDto dto)
         {
             _logger.LogInformation("API: Updating user {Id}", id);
+            var authResult = await _authorizationService.AuthorizeAsync(
+            User,
+             id,
+              "UserOwnerOrAdmin");
 
+            if (!authResult.Succeeded)
+                return Forbid(); // 403
             if (dto == null || id != dto.Id)
                 return BadRequest("Invalid Id or mismatched data");
 
@@ -138,11 +154,37 @@ namespace EcommrceApi.Controllers
                 _ => StatusCode(500, "Delete failed")
             };
         }
+
+        [HttpPut("ChangePassword/{id}", Name = "ChangePassword")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> ChangePassword(int id, [FromBody] string newPassword)
+        {
+            _logger.LogInformation("API: Changing password for user {Id}", id);
+
+            if (string.IsNullOrWhiteSpace(newPassword))
+                return BadRequest("New password cannot be empty.");
+            var authResult = await _authorizationService.AuthorizeAsync(
+             User,
+              id,
+               "UserOwnerOrAdmin");
+            if (!authResult.Succeeded)
+                return Forbid(); // 403
+            var result = await _userService.ChangeUserPassword(id, newPassword);
+            return result switch
+            {
+                UserOperationResult.Success => Ok(new { message = "Password changed successfully" }),
+                UserOperationResult.NotFound => NotFound("User not found"),
+                UserOperationResult.InvalidData => BadRequest("Invalid Id or password"),
+                _ => StatusCode(500, "Failed to change password")
+            };
+        }
+
+
+
+
+
     }
-
-
-
-
-
 }
 

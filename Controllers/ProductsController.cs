@@ -72,22 +72,6 @@ namespace EcommrceApi.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ProductDTO>> GetProductById(int ProductId)
         {
-            var productAuthCalimId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-
-
-
-            if (!int.TryParse(productAuthCalimId, out int productauthcalimId))
-            {
-                return Unauthorized(new { message = "Invalid user ID" });
-            }
-            var UserRole = User.FindFirstValue(ClaimTypes.Role);
-            bool IsAdmin = UserRole == "Admin";
-
-            if (!IsAdmin && productauthcalimId != ProductId)
-            {
-                return Forbid();
-            }
 
 
             if (ProductId < 0)

@@ -1,8 +1,10 @@
 ﻿using EcommerceBuisnessLayer;
+using EcommrceApi.Authorization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Serilog;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,6 +31,7 @@ builder.Services.AddCors(options =>
 
 // Add services to the container.
 builder.Services.AddControllers();
+builder.Services.AddSingleton<IAuthorizationHandler, UserOwnerOrAdminHandler>();
 
 // Repositories
 builder.Services.AddScoped<ICategoriesRepository, CategoriesRepository>();
@@ -76,11 +79,8 @@ builder.Services.AddSwaggerGen(options =>
             new string[] {}
         }
     });
-}); // 👈 هنا قفلنا السواجر خلاص
+}); 
 
-// ==========================================
-// 2. JWT Authentication Configuration
-// ==========================================
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -99,6 +99,11 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(
             Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
     };
+});
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("UserOwnerOrAdmin", policy =>
+        policy.Requirements.Add(new UserOwnerOrAdminRequirement()));
 });
 
 

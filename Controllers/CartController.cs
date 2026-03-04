@@ -28,17 +28,6 @@ namespace EcommrceApi.Controllers
 
 
 
-            if (!int.TryParse(CartAuthCalimId, out int cartauthCalimid))
-            {
-                return Unauthorized(new { message = "Invalid user ID" });
-            }
-            var UserRole = User.FindFirstValue(ClaimTypes.Role);
-            bool IsAdmin = UserRole == "Admin";
-
-            if (!IsAdmin && cartauthCalimid != userId)
-            {
-                return Forbid();
-            }
 
 
             var cart = await _cartService.GetUserCart(userId);
