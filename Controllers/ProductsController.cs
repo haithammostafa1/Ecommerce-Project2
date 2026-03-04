@@ -1,16 +1,18 @@
 ﻿using EcommerceBuisnessLayer;
 using EcommerceDataLayer;
 using EcommerceDataLayer.Helpers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
+using System.Security.Claims;
 using System.Text.Json;
 
 namespace EcommrceApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-
+   
 
     public class ProductsController : ControllerBase
     {
@@ -21,7 +23,7 @@ namespace EcommrceApi.Controllers
             _productService = productService;
         }
 
-
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}", Name = "DeleteProduct")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -43,7 +45,7 @@ namespace EcommrceApi.Controllers
 
             };
         }
-
+        [Authorize(Roles = "Admin")]
         [HttpPost("AddNewProduct", Name = "AddNewProduct")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -70,6 +72,24 @@ namespace EcommrceApi.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<ProductDTO>> GetProductById(int ProductId)
         {
+            var productAuthCalimId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+
+
+
+            if (!int.TryParse(productAuthCalimId, out int productauthcalimId))
+            {
+                return Unauthorized(new { message = "Invalid user ID" });
+            }
+            var UserRole = User.FindFirstValue(ClaimTypes.Role);
+            bool IsAdmin = UserRole == "Admin";
+
+            if (!IsAdmin && productauthcalimId != ProductId)
+            {
+                return Forbid();
+            }
+
+
             if (ProductId < 0)
             {
                 Log.Warning("API: BadRequest Wrong {ID}", ProductId);
@@ -87,7 +107,7 @@ namespace EcommrceApi.Controllers
             return Ok(Product);
 
         }
-
+        [Authorize(Roles = "Admin")]
         [HttpPut("Update/{id}", Name = "UpdateProduct")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -117,7 +137,7 @@ namespace EcommrceApi.Controllers
             };
 
         }
-
+        [AllowAnonymous]
         [HttpGet("GetAllProducts", Name = "GetAllProductsPaged")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Serilog;
+using System.Security.Claims;
 using System.Text.Json;
 
 namespace EcommrceApi.Controllers
@@ -20,13 +21,15 @@ namespace EcommrceApi.Controllers
         {
             _categoryService = categoryService;
         }
-
+        [AllowAnonymous]
         [HttpGet("{Id}", Name = "GetCategoryById")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<ActionResult<CategoryDto>> GetCategoryByID(int Id)
         {
+
+
             Log.Information("API: Received Request To Get Category By {Id}", Id);
 
             if (Id < 1)
@@ -48,7 +51,7 @@ namespace EcommrceApi.Controllers
         }
 
 
-
+        [Authorize(Roles = "Admin")]
         [HttpPut("Update/{id}", Name = "UpdateCategory")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -85,6 +88,7 @@ namespace EcommrceApi.Controllers
                     StatusCode(500, "Unexpected error while updating category.")
             };
         }
+        [Authorize(Roles = "Admin")]
         [HttpPost("AddNew", Name = "AddNewCategory")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -104,7 +108,7 @@ namespace EcommrceApi.Controllers
 
 
         }
-
+        [AllowAnonymous]
         [HttpGet("GetCategoriesPaged", Name = "GetCategoriesPaged")]
         public async Task<IActionResult> GetCategoriesPages([FromQuery] PaginationParams pParams)
         {
@@ -133,7 +137,7 @@ namespace EcommrceApi.Controllers
                 return StatusCode(500, "Internal server error.");
             }
         }
-
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}", Name = "DeleteCategory")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]

@@ -1,12 +1,12 @@
 ﻿using EcommerceBuisnessLayer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-
+using System.Security.Claims;
 namespace EcommrceApi.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-   // [Authorize]
+    [Authorize]
     public class CartController : ControllerBase
     {
 
@@ -23,6 +23,24 @@ namespace EcommrceApi.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetCart(int userId)
         {
+            var CartAuthCalimId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+
+
+
+            if (!int.TryParse(CartAuthCalimId, out int cartauthCalimid))
+            {
+                return Unauthorized(new { message = "Invalid user ID" });
+            }
+            var UserRole = User.FindFirstValue(ClaimTypes.Role);
+            bool IsAdmin = UserRole == "Admin";
+
+            if (!IsAdmin && cartauthCalimid != userId)
+            {
+                return Forbid();
+            }
+
+
             var cart = await _cartService.GetUserCart(userId);
             if (cart == null) return NotFound("Cart not found");
             return Ok(cart);
@@ -33,6 +51,8 @@ namespace EcommrceApi.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+
+        [Authorize(Roles = "User,Admin")]
         public async Task<IActionResult> AddItem(
             int userId, int productId, int quantity, decimal price)
         {
@@ -48,7 +68,7 @@ namespace EcommrceApi.Controllers
                 _ => StatusCode(500)
             };
         }
-
+        [Authorize(Roles = "User,Admin")]
         [HttpPut("{userId}/update")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -66,7 +86,7 @@ namespace EcommrceApi.Controllers
                 _ => StatusCode(500)
             };
         }
-
+        [Authorize(Roles = "User,Admin")]
         [HttpDelete("{userId}/remove/{productId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -82,7 +102,7 @@ namespace EcommrceApi.Controllers
                 _ => StatusCode(500)
             };
         }
-
+        [Authorize(Roles = "User,Admin")]
         [HttpDelete("{userId}/clear")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -91,7 +111,7 @@ namespace EcommrceApi.Controllers
             var success = await _cartService.ClearCart(userId);
             return success ? Ok("Cart Cleared") : StatusCode(500);
         }
-
+        [Authorize(Roles = "User,Admin")]
         [HttpGet("{userId}/summary")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> Summary(int userId)

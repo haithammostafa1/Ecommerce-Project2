@@ -124,7 +124,6 @@ namespace EcommerceDataLayer
             };
         }
 
-        // Get User By ID
         public static async Task<UserResponseDto?> GetUserById(int id)
         {
             Log.Information("DAL: Getting user by ID {Id}", id);

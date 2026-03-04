@@ -12,26 +12,24 @@ namespace EcommrceApi.Controllers
    
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+  [Authorize]
     public class UsersController : ControllerBase
     {
         private readonly IUserService _userService;
-
-        public UsersController(IUserService userService)
+        private readonly ILogger<UsersController> _logger;
+        public UsersController(IUserService userService, ILogger<UsersController> logger)
         {
             _userService = userService;
+            _logger = logger;
         }
 
-        // ===============================
-        // 🔹 Get User By Id
-        // ===============================
         [HttpGet("{id}", Name = "GetUserById")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetUserById(int id)
         {
-            Log.Information("API: Request to get user {Id}", id);
+            _logger.LogInformation("API: Request to get user {Id}", id);
 
             if (id <= 0)
                 return BadRequest("Invalid User Id");
@@ -43,15 +41,12 @@ namespace EcommrceApi.Controllers
 
             return Ok(user);
         }
-
-        // ===============================
-        // 🔹 Get All Users (Paged)
-        // ===============================
+     //   [Authorize(Roles = "Admin")]
         [HttpGet("GetAll", Name = "GetAllUsers")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> GetAllUsers([FromQuery] PaginationParams pagination)
         {
-            Log.Information("API: Request to get all users");
+            _logger.LogInformation("API: Request to get all users");
 
             var pagedList = await _userService.GetAllUsers(pagination);
 
@@ -70,15 +65,15 @@ namespace EcommrceApi.Controllers
             return Ok(pagedList);
         }
 
-       
-    
-        // ===============================
+
+
+        [Authorize(Roles = "Admin")]
         [HttpPost("AddNewUser", Name = "AddNewUser")]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> AddNewUser([FromBody] UseCreateDto dto)
         {
-            Log.Information("API: Adding new user {Email}", dto?.Email);
+            _logger.LogInformation("API: Adding new user {Email}", dto?.Email);
 
             if (dto == null)
                 return BadRequest(new { message = "Invalid user data." });
@@ -101,16 +96,14 @@ namespace EcommrceApi.Controllers
             };
         }
 
-        // ===============================
-        // 🔹 Update User
-        // ===============================
+        [Authorize(Roles = "Admin")]
         [HttpPut("Update/{id}", Name = "UpdateUser")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> UpdateUser(int id, [FromBody] UserResponseDto dto)
         {
-            Log.Information("API: Updating user {Id}", id);
+            _logger.LogInformation("API: Updating user {Id}", id);
 
             if (dto == null || id != dto.Id)
                 return BadRequest("Invalid Id or mismatched data");
@@ -126,16 +119,14 @@ namespace EcommrceApi.Controllers
                 _ => StatusCode(500, "Unexpected error")
             };
         }
-
-        // ===============================
-        // 🔹 Delete User
-        // ===============================
+        [Authorize(Roles = "Admin")]
         [HttpDelete("{id}", Name = "DeleteUser")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> DeleteUser(int id)
         {
-            Log.Information("API: Deleting user {Id}", id);
+            _logger.LogInformation("API: Deleting user {Id}", id);
 
             var result = await _userService.DeleteUser(id);
 

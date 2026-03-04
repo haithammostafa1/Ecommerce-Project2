@@ -13,17 +13,18 @@ namespace EcommrceApi.Controllers
     {
 
         private readonly OrderService _orderService;
+        private readonly ILogger<OrdersController> _logger;
 
-
-        public OrdersController(OrderService orderService)
+        public OrdersController(OrderService orderService, ILogger<OrdersController> logger)
         {
             _orderService = orderService;
+            _logger = logger;
         }
-
+        [Authorize(Roles = "User,Admin")]
         [HttpPost("place")]
         public async Task<IActionResult> PlaceOrder([FromBody] PlaceOrderRequestDto request)
         {
-            Log.Information("HTTP PlaceOrder request received.");
+            _logger.LogInformation("HTTP PlaceOrder request received.");
 
             // 3. استدعاء الدالة
             var result = await _orderService.PlaceOrder(request);
@@ -51,10 +52,11 @@ namespace EcommrceApi.Controllers
             };
         }
 
-        // دالة إلغاء الطلب (إضافية لكي تستفيد من الكود الجديد الذي كتبناه)
+        [Authorize(Roles = "User,Admin")]
         [HttpPost("cancel/{orderId}")]
         public async Task<IActionResult> CancelOrder(int orderId)
         {
+            _logger.LogInformation("HTTP CancelOrder request received for Order ID: {OrderId}", orderId);
             var result = await _orderService.CancelOrderAsync(orderId);
 
             return result switch
