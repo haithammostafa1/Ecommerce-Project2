@@ -40,6 +40,8 @@ namespace EcommerceDataLayer
 
             public string? Address { get; set; }
             public DateTime CreatedAt { get; set; }
+
+          
         }
         public class UseCreateDto
         {
@@ -93,6 +95,13 @@ namespace EcommerceDataLayer
             [Required]
             [MaxLength(100)]
             public string Role { get; set; } = string.Empty;
+           
+            public string? RefreshTokenHash { get; set; }
+           
+            public DateTime? RefreshTokenExpiresAt { get; set; }
+            
+            public DateTime? RefreshTokenRevokedAt { get; set; }
+
         }
         private static UserAuthDto MapToUserAuthDto(SqlDataReader reader)
         {
@@ -103,7 +112,13 @@ namespace EcommerceDataLayer
                 LastName = reader.GetString(reader.GetOrdinal("LastName")),
                 Email = reader.GetString(reader.GetOrdinal("Email")),
                 Passwordhash = reader.GetString(reader.GetOrdinal("PasswordHash")),
-                Role = reader.GetString(reader.GetOrdinal("Role"))
+                Role = reader.GetString(reader.GetOrdinal("Role")),
+                RefreshTokenHash = reader.IsDBNull(reader.GetOrdinal("RefreshTokenHash")) ?
+                null : reader.GetString(reader.GetOrdinal("RefreshTokenHash")),
+                RefreshTokenExpiresAt = reader.IsDBNull(reader.GetOrdinal("RefreshTokenExpiresAt")) ?
+                null : reader.GetDateTime(reader.GetOrdinal("RefreshTokenExpiresAt")),
+                RefreshTokenRevokedAt= reader.IsDBNull(reader.GetOrdinal("RefreshTokenRevokedAt")) ?
+                null : reader.GetDateTime(reader.GetOrdinal("RefreshTokenRevokedAt"))
             };
         }
         private static UserResponseDto MapToUserDto(SqlDataReader reader)
@@ -406,7 +421,30 @@ namespace EcommerceDataLayer
             }
         }
 
+        public static async Task<int> UpdateUserRefreshToken(int userId, string? refreshTokenHash, DateTime? expiresAt, DateTime? revokedAt)
+        {
+            Log.Information("DAL: Updating refresh token info for user {Id}", userId);
+            try
+            {
+                using SqlConnection conn = new(clsAccessSettings.ConnectionString);
+                using SqlCommand cmd = new("sp_UpdateRefreshToken", conn);
+                cmd.CommandType = CommandType.StoredProcedure;
 
+                cmd.Parameters.Add("@UserId", SqlDbType.Int).Value = userId;
+                cmd.Parameters.Add("@RefreshTokenHash", SqlDbType.NVarChar, -1).Value = (object?)refreshTokenHash ?? DBNull.Value;
+                cmd.Parameters.Add("@ExpiresAt", SqlDbType.DateTime).Value = (object?)expiresAt ?? DBNull.Value;
+                cmd.Parameters.Add("@RevokedAt", SqlDbType.DateTime).Value = (object?)revokedAt ?? DBNull.Value;
+
+                await conn.OpenAsync();
+                int rowsAffected = await cmd.ExecuteNonQueryAsync();
+                return rowsAffected;
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "DAL: Error updating refresh token for user {Id}", userId);
+                throw;
+            }
+        }
 
 
 

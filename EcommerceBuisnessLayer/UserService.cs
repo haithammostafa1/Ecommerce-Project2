@@ -14,6 +14,7 @@ namespace EcommerceBuisnessLayer
     public interface IUserRepository
     {
         Task<UserResponseDto?> GetUserById(int id);
+        Task<int> UpdateUserRefreshToken(int userId, string? refreshTokenHash, DateTime? expiresAt, DateTime? revokedAt);
         Task<UserAuthDto?> GetUserByEmail(string email);
         Task<PagedList<UserResponseDto>> GetAllUsers(PaginationParams pagination);
         Task<int> RegisterNewUser(UseCreateDto dto);
@@ -26,6 +27,8 @@ namespace EcommerceBuisnessLayer
     {
         public async Task<UserResponseDto?> GetUserById(int id)
             => await clsUserData.GetUserById(id);
+        public async Task<int> UpdateUserRefreshToken(int userId, string? refreshTokenHash, DateTime? expiresAt, DateTime? revokedAt)
+            =>await clsUserData.UpdateUserRefreshToken(userId, refreshTokenHash, expiresAt, revokedAt);
         public async Task<int> ChangeUserPassword(int id,string NewPassword)
             => await clsUserData.ChangeUserPassword(id, NewPassword);
       
@@ -59,6 +62,7 @@ namespace EcommerceBuisnessLayer
     {
         Task<UserResponseDto?> GetUserById(int id);
         Task<UserAuthDto?> GetUserByEmail(string email);
+        Task<UserOperationResult> UpdateUserRefreshToken(int userId, string? refreshTokenHash, DateTime? expiresAt, DateTime? revokedAt);
         Task<PagedList<UserResponseDto>> GetAllUsers(PaginationParams pagination);
         Task<UserOperationResult> RegisterNewUser(UseCreateDto dto);
         Task<UserOperationResult> ChangeUserPassword(int id, string password);
@@ -83,7 +87,20 @@ namespace EcommerceBuisnessLayer
             _logger.LogInformation("Service: Getting user {Id}", id);
             return await _repository.GetUserById(id);
         }
+        public async Task<UserOperationResult> UpdateUserRefreshToken(int userId, string? refreshTokenHash, DateTime? expiresAt, DateTime? revokedAt)
+        {
+            if(userId<=0)
+            {
+                return UserOperationResult.InvalidData;
+            }
 
+            int result= await _repository.UpdateUserRefreshToken(userId, refreshTokenHash, expiresAt, revokedAt);
+
+            return result > 0
+        ? UserOperationResult.Success
+        : UserOperationResult.Failed;
+
+        }
         public async Task<UserAuthDto?> GetUserByEmail(string email)
         {
             _logger.LogInformation("Service: Getting user by email {Email}", email);

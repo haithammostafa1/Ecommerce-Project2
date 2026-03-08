@@ -12,10 +12,12 @@ namespace EcommrceApi.Controllers
 
 
         private readonly CartService _cartService;
+        private readonly IAuthorizationService _authorizationService;
 
-        public CartController(CartService cartService)
+        public CartController(CartService cartService, IAuthorizationService authorizationService)
         {
             _cartService = cartService;
+            _authorizationService = authorizationService;
         }
 
         [HttpGet("{userId}")]
@@ -23,12 +25,14 @@ namespace EcommrceApi.Controllers
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         public async Task<IActionResult> GetCart(int userId)
         {
-            var CartAuthCalimId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
+            var authResult = await _authorizationService.AuthorizeAsync(
+          User,
+            userId,
+             "UserOwnerOrAdmin");
 
-
-
-
+            if (!authResult.Succeeded)
+                return Forbid(); // 403
 
             var cart = await _cartService.GetUserCart(userId);
             if (cart == null) return NotFound("Cart not found");
@@ -40,11 +44,17 @@ namespace EcommrceApi.Controllers
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-
-        [Authorize(Roles = "User,Admin")]
         public async Task<IActionResult> AddItem(
             int userId, int productId, int quantity, decimal price)
         {
+
+            var authResult = await _authorizationService.AuthorizeAsync(
+          User,
+            userId,
+             "UserOwnerOrAdmin");
+
+            if (!authResult.Succeeded)
+                return Forbid(); // 403
             var result = await _cartService
                 .AddItem(userId, productId, quantity, price);
 
@@ -57,7 +67,7 @@ namespace EcommrceApi.Controllers
                 _ => StatusCode(500)
             };
         }
-        [Authorize(Roles = "User,Admin")]
+        [Authorize(Roles = "Admin")]
         [HttpPut("{userId}/update")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -65,6 +75,14 @@ namespace EcommrceApi.Controllers
         public async Task<IActionResult> UpdateItem(
             int userId, int productId, int quantity)
         {
+
+            var authResult = await _authorizationService.AuthorizeAsync(
+          User,
+            userId,
+             "UserOwnerOrAdmin");
+
+            if (!authResult.Succeeded)
+                return Forbid(); // 403
             var result = await _cartService
                 .UpdateItem(userId, productId, quantity);
 
@@ -75,13 +93,21 @@ namespace EcommrceApi.Controllers
                 _ => StatusCode(500)
             };
         }
-        [Authorize(Roles = "User,Admin")]
+       
         [HttpDelete("{userId}/remove/{productId}")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> RemoveItem(int userId, int productId)
         {
+
+            var authResult = await _authorizationService.AuthorizeAsync(
+          User,
+            userId,
+             "UserOwnerOrAdmin");
+
+            if (!authResult.Succeeded)
+                return Forbid(); // 403
             var result = await _cartService.RemoveItem(userId, productId);
 
             return result switch
@@ -91,12 +117,20 @@ namespace EcommrceApi.Controllers
                 _ => StatusCode(500)
             };
         }
-        [Authorize(Roles = "User,Admin")]
+        
         [HttpDelete("{userId}/clear")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> Clear(int userId)
         {
+
+            var authResult = await _authorizationService.AuthorizeAsync(
+          User,
+            userId,
+             "UserOwnerOrAdmin");
+
+            if (!authResult.Succeeded)
+                return Forbid(); // 403
             var success = await _cartService.ClearCart(userId);
             return success ? Ok("Cart Cleared") : StatusCode(500);
         }
@@ -105,6 +139,14 @@ namespace EcommrceApi.Controllers
         [ProducesResponseType(StatusCodes.Status200OK)]
         public async Task<IActionResult> Summary(int userId)
         {
+
+            var authResult = await _authorizationService.AuthorizeAsync(
+              User,
+            userId,
+             "UserOwnerOrAdmin");
+
+            if (!authResult.Succeeded)
+                return Forbid(); // 403
             var summary = await _cartService.GetSummary(userId);
             return Ok(summary);
         }

@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace EcommerceBuisnessLayer.Dtos
+namespace EcommrceApi.DTO.Auth
 {
     public class LoginDto
     {
