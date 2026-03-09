@@ -10,6 +10,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace EcommrceApi.Controllers
 {
@@ -73,6 +74,8 @@ namespace EcommrceApi.Controllers
         }
         [HttpPost("Refresh")]
         [AllowAnonymous]
+        [EnableRateLimiting("AuthLimiter")]
+
         public async Task<IActionResult> Refresh([FromBody] RefreshRequest request)
         {
             if (request == null || string.IsNullOrWhiteSpace(request.Token) || string.IsNullOrWhiteSpace(request.Token))
@@ -96,7 +99,6 @@ namespace EcommrceApi.Controllers
                 return Unauthorized(new { message = "Invalid or expired refresh token. Please login again." });
             }
 
-            // 4. لو كل حاجة تمام، نولد Access Token جديد
             var secretKey = _configuration["Jwt:Key"];
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
@@ -104,21 +106,19 @@ namespace EcommrceApi.Controllers
             var newToken = new JwtSecurityToken(
                 issuer: _configuration["Jwt:Issuer"],
                 audience: _configuration["Jwt:Audience"],
-                claims: principle.Claims, // بناخد نفس الكلايمز القديمة
+                claims: principle.Claims, 
                 expires: DateTime.UtcNow.AddMinutes(15),
                 signingCredentials: creds
             );
 
             var newAccessToken = new JwtSecurityTokenHandler().WriteToken(newToken);
 
-            // 5. (إختياري ومستحسن) نولد Refresh Token جديد برضه زيادة أمان (Token Rotation)
             var newRefreshToken = GenerateRefreshToken();
             var newRefreshTokenHash = HashRefreshToken(newRefreshToken);
             await _userService.UpdateUserRefreshToken(user.Id, newRefreshTokenHash, DateTime.UtcNow.AddDays(7), null);
 
             _logger.LogInformation("API: Token refreshed successfully for user {Email}", email);
 
-            // 6. نرجع الداتا الجديدة للعميل
             return Ok(new
             {
                 token = newAccessToken,
@@ -149,7 +149,10 @@ namespace EcommrceApi.Controllers
             return Ok(new { message = "Logged out successfully." });
         }
         [AllowAnonymous]
+
         [HttpPost("Login")]
+        [EnableRateLimiting("AuthLimiter")]
+
         public async Task<IActionResult> Login([FromBody] LoginDto loginDto)
         {
             _logger.LogInformation("API: Login attempt for email: {Email}", loginDto.Email);
